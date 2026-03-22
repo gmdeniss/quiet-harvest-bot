@@ -394,13 +394,6 @@ def main():
     import os
     from pathlib import Path
 
-    # Проверяем .env
-    env_path = Path(".env")
-    if not env_path.exists():
-        print("ERROR: файл .env не найден!")
-        print("Скопируй .env.example → .env и заполни токены")
-        sys.exit(1)
-
     # Bootstrap: загружаем историю из TSV если history пустая
     history_file = Path("data/onchain_history.json")
     if not history_file.exists():
