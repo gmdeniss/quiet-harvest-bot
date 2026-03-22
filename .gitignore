@@ -1,0 +1,31 @@
+# Секреты — никогда в git
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+
+# Локальные данные (состояние бота — хранится в Redis на продакшене)
+data/positions.json
+data/capital.json
+data/bot.log
+data/trade_log.json
+
+# Кэш OHLCV (большой, скачивается автоматически)
+data/cache/
+
+# On-chain история — коммитим базовую из TSV, Blockchair дополнит
+# data/onchain_history.json  ← НЕ игнорируем, нужен для bootstrap
+
+# Результаты бэктеста (большие файлы)
+results/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

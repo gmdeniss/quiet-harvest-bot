@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: quiet-harvest-bot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m bot.main
+    envVars:
+      - key: PAPER_MODE
+        value: "true"
+      - key: PORTFOLIO
+        value: "ETH,BCH,DASH,ZEC"
+      - key: INITIAL_CAPITAL
+        value: "1000.0"
+      - key: TARGET_CAPITAL
+        value: "2000.0"
+      - key: POSITION_SIZE
+        value: "0.15"
+      - key: MAX_SIMULTANEOUS
+        value: "2"
+      - key: PRICE_CHECK_INTERVAL
+        value: "60"
+      - key: SIGNAL_CHECK_HOUR
+        value: "0"
+      - key: SIGNAL_CHECK_MINUTE
+        value: "5"
+      # Секретные переменные — задать вручную в Render Dashboard:
+      # TELEGRAM_TOKEN
+      # TELEGRAM_CHAT_ID
+      # REDIS_URL          (из Upstash)
+      # KRAKEN_API_KEY     (только для live mode)
+      # KRAKEN_API_SECRET  (только для live mode)
