@@ -31,6 +31,7 @@ from bot.positions import (
     remove_position, update_peak, log_trade, CapitalTracker,
 )
 from bot.telegram_bot import TelegramNotifier
+from bot.commands import CommandHandler
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,6 +57,7 @@ class TradingBot:
         )
         self.capital = CapitalTracker(self.cfg.initial_capital, self.cfg.target_capital)
         self._last_signal_date: date | None = None
+        self.cmd = CommandHandler(self)
 
     # ── Открытие позиции ──────────────────────────────────────────
 
@@ -380,12 +382,13 @@ class TradingBot:
 
         self.tg.bot_started(self.capital.capital, len(positions))
 
-        # Четыре параллельных цикла
+        # Пять параллельных циклов
         await asyncio.gather(
             self.health_server(),
             self.signal_loop(),
             self.monitor_loop(),
             self.daily_report_loop(),
+            self.cmd.polling_loop(),
         )
 
 
