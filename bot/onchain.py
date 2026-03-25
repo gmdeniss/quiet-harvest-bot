@@ -64,7 +64,10 @@ def fetch_daily_volume(asset: str) -> float | None:
         data = resp.json()["data"]
 
         # Blockchair возвращает volume_24h в сатошах/wei
-        raw_volume = data.get("volume_24h") or data.get("transactions_volume_24h")
+        # ETH использует volume_24h_approximate
+        raw_volume = (data.get("volume_24h")
+                      or data.get("volume_24h_approximate")
+                      or data.get("transactions_volume_24h"))
         if raw_volume is None:
             log.warning(f"{asset}: поле volume_24h не найдено, ключи: {list(data.keys())}")
             return None

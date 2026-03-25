@@ -397,10 +397,15 @@ def main():
     import os
     from pathlib import Path
 
-    # Bootstrap: загружаем историю из TSV если history пустая
-    history_file = Path("data/onchain_history.json")
-    if not history_file.exists():
-        log.info("Первый запуск — загружаем историю из TSV файлов...")
+    # Bootstrap: загружаем историю из TSV если в хранилище (Redis/файл) мало данных
+    from bot.storage import load_onchain_raw
+    _history = load_onchain_raw()
+    _needs_bootstrap = not _history or not all(
+        len(_history.get(a, {})) >= 30
+        for a in ["ETH", "BCH", "DASH", "ZEC"]
+    )
+    if _needs_bootstrap:
+        log.info("История пустая или неполная — загружаем из TSV файлов...")
         bootstrap_all_from_tsv()
 
     bot = TradingBot()

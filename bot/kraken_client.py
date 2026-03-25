@@ -133,12 +133,23 @@ class KrakenClient:
 
     def _public(self, method: str, params: dict = None) -> dict:
         url = f"{BASE_URL}/0/public/{method}"
-        resp = self.session.get(url, params=params or {}, timeout=10)
-        resp.raise_for_status()
-        result = resp.json()
-        if result["error"]:
-            raise RuntimeError(f"Kraken API error: {result['error']}")
-        return result["result"]
+        last_exc = None
+        for attempt in range(3):
+            try:
+                resp = self.session.get(url, params=params or {}, timeout=10)
+                resp.raise_for_status()
+                result = resp.json()
+                if result["error"]:
+                    raise RuntimeError(f"Kraken API error: {result['error']}")
+                return result["result"]
+            except RuntimeError:
+                raise
+            except Exception as e:
+                last_exc = e
+                if attempt < 2:
+                    log.warning(f"Kraken {method} attempt {attempt+1} failed: {e}, retrying...")
+                    time.sleep(2)
+        raise last_exc
 
     def has_credentials(self) -> bool:
         return bool(self.api_key and self.api_secret)
