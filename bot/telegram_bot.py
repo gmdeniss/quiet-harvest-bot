@@ -107,7 +107,7 @@ class TelegramNotifier:
         else:
             pos_text = "  Нет открытых позиций"
 
-        progress_pct = (capital - 1000) / (target - 1000) * 100 if target > 1000 else 0
+        progress_pct = (capital - 1000) / (target - 1000) * 100 if target > 1000 else 100
         progress_bar = "█" * int(progress_pct / 10) + "░" * (10 - int(progress_pct / 10))
 
         msg = (

@@ -134,7 +134,11 @@ class CommandHandler:
             if not cfg:
                 continue
             try:
-                price = self.bot.kraken.get_price(cfg.kraken_pair)
+                price = (
+                    self.bot.paper.get_current_price(cfg.kraken_pair)
+                    if self.cfg.paper_mode and self.bot.paper
+                    else self.bot.kraken.get_price(cfg.kraken_pair)
+                )
                 pnl_pct = (price - pos.entry_price) / pos.entry_price
                 pnl_usd = pnl_pct * pos.deployed_capital
                 emoji = "📈" if pnl_pct >= 0 else "📉"
@@ -155,19 +159,29 @@ class CommandHandler:
         self.tg.send("📄 *[PAPER]* 🔍 Проверяю сигналы...")
         try:
             from bot.onchain import update_history
-            from bot.strategy import check_all_signals
-            update_history(list(self.cfg.assets.keys()))
-            signals = check_all_signals(self.cfg.assets)
+            from bot.strategy import check_signal
+            await asyncio.to_thread(update_history, list(self.cfg.assets.keys()))
 
-            if signals:
-                lines = [f"• *{s.asset}*: `{s.ratio:.2f}x` от MA" for s in signals]
+            lines = []
+            for asset, cfg in self.cfg.assets.items():
+                sig = check_signal(asset, cfg)
+                if sig:
+                    emoji = "🟢" if sig.triggered else "⚪"
+                    lines.append(f"{emoji} *{asset}*: `{sig.ratio:.2f}x` от MA")
+                else:
+                    lines.append(f"⚠️ *{asset}*: нет данных")
+
+            triggered = [l for l in lines if "🟢" in l]
+            if triggered:
                 self.tg.send(
-                    f"📄 *[PAPER]* 🔍 *Сигналы найдены:*\n\n" + "\n".join(lines)
+                    f"📄 *[PAPER]* 🔍 *Сигналы:*\n\n" + "\n".join(lines)
+                    + "\n\n_Позиции открываются автоматически в 00:05 UTC_"
                 )
-                # Открываем позиции если есть слоты
-                await self.bot._run_signal_check()
             else:
-                self.tg.send("📄 *[PAPER]* 🔍 Сигналов нет — объём в норме.")
+                self.tg.send(
+                    f"📄 *[PAPER]* 🔍 *Сигналы:*\n\n" + "\n".join(lines)
+                    + "\n\n_Объём в норме — сигналов нет_"
+                )
         except Exception as e:
             self.tg.send(f"📄 *[PAPER]* ⚠️ Ошибка: `{e}`")
 

@@ -316,11 +316,12 @@ class TradingBot:
 
     async def daily_report_loop(self):
         """Шлёт дневной отчёт в 09:00 UTC."""
+        _last_report_date = None
         while True:
             now = datetime.now(timezone.utc)
-            if now.hour == 9 and now.minute == 0:
+            if now.hour == 9 and _last_report_date != now.date():
                 self._send_daily_report()
-                await asyncio.sleep(61)
+                _last_report_date = now.date()
             await asyncio.sleep(30)
 
     def _send_daily_report(self):

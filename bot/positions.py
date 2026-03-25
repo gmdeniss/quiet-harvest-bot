@@ -40,10 +40,9 @@ class Position:
         entry = date.fromisoformat(self.entry_date)
         return (date.today() - entry).days
 
-    @property
-    def pnl_pct(self, current_price: float = None) -> float:
-        """P&L % от entry_price (нужна текущая цена)."""
-        return 0.0  # вычисляется снаружи с реальной ценой
+    def pnl_pct(self, current_price: float) -> float:
+        """P&L % от entry_price."""
+        return (current_price - self.entry_price) / self.entry_price
 
 
 def load_positions() -> dict[str, Position]:

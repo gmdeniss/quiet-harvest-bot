@@ -28,16 +28,27 @@ FILE_CAPITAL   = DATA_DIR / "capital.json"
 FILE_ONCHAIN   = DATA_DIR / "onchain_history.json"
 
 
+_redis_client = None
+_redis_checked = False
+
 def _get_redis():
+    global _redis_client, _redis_checked
     if not REDIS_URL:
         return None
+    if _redis_checked:
+        return _redis_client
     try:
         import redis
         r = redis.from_url(REDIS_URL, decode_responses=True)
         r.ping()
+        _redis_client = r
+        _redis_checked = True
+        log.info("Redis подключён")
         return r
     except Exception as e:
         log.warning(f"Redis недоступен: {e} — используем файлы")
+        _redis_checked = True
+        _redis_client = None
         return None
 
 
