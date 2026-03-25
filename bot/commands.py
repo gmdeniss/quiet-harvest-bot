@@ -172,14 +172,8 @@ class CommandHandler:
             self.tg.send(f"📄 *[PAPER]* ⚠️ Ошибка: `{e}`")
 
     async def _cmd_history(self):
-        import json
-        from pathlib import Path
-        log_path = Path("data/trade_log.json")
-
-        trades = []
-        if log_path.exists():
-            with open(log_path) as f:
-                trades = json.load(f)
+        from bot.storage import load_tradelog_raw
+        trades = load_tradelog_raw()
 
         if not trades:
             self.tg.send("📄 *[PAPER]* 📋 *История пуста* — сделок ещё не было.")

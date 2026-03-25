@@ -3,17 +3,17 @@
 Состояние хранится в data/positions.json (переживает рестарты).
 """
 
-import json
 import logging
 from dataclasses import dataclass, asdict
 from datetime import date, datetime
-from pathlib import Path
 
-from bot.storage import load_positions_raw, save_positions_raw, load_capital_raw, save_capital_raw
+from bot.storage import (
+    load_positions_raw, save_positions_raw,
+    load_capital_raw, save_capital_raw,
+    load_tradelog_raw, save_tradelog_raw,
+)
 
 log = logging.getLogger(__name__)
-
-TRADE_LOG_FILE = Path("data/trade_log.json")
 
 
 @dataclass
@@ -104,16 +104,9 @@ def log_trade(pos: Position, exit_price: float, exit_reason: str, capital_after:
         "peak_price": pos.peak_price,
     }
 
-    # Дописываем в лог
-    log_path = TRADE_LOG_FILE
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    trades = []
-    if log_path.exists():
-        with open(log_path) as f:
-            trades = json.load(f)
+    trades = load_tradelog_raw()
     trades.append(trade)
-    with open(log_path, "w") as f:
-        json.dump(trades, f, indent=2)
+    save_tradelog_raw(trades)
 
     log.info(
         f"Сделка закрыта: {pos.asset}  {exit_reason}  "
@@ -126,9 +119,8 @@ def log_trade(pos: Position, exit_price: float, exit_reason: str, capital_after:
 class CapitalTracker:
     """
     Отслеживает текущий капитал и логику снятия прибыли.
-    Хранится в data/capital.json.
+    Хранится в Redis (qhb:capital) или data/capital.json локально.
     """
-    CAPITAL_FILE = Path("data/capital.json")
 
     def __init__(self, initial: float, target: float):
         self.initial = initial

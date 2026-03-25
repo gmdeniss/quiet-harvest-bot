@@ -57,9 +57,17 @@ class TradingBot:
         )
         self.capital = CapitalTracker(self.cfg.initial_capital, self.cfg.target_capital)
         self._last_signal_date: date | None = None
-        self._traded_today: set[str] = set()   # активы уже торгованные сегодня
-        self._traded_date: date = date.today()
         self.cmd = CommandHandler(self)
+
+        # Загружаем _traded_today из Redis (восстанавливаем после рестарта)
+        from bot.storage import load_traded_today_raw
+        _tt = load_traded_today_raw()
+        today_str = date.today().isoformat()
+        if _tt.get("date") == today_str:
+            self._traded_today: set[str] = set(_tt.get("assets", []))
+        else:
+            self._traded_today: set[str] = set()
+        self._traded_date: date = date.today()
 
     # ── Открытие позиции ──────────────────────────────────────────
 
@@ -76,10 +84,12 @@ class TradingBot:
             return
 
         # Уже торговали сегодня — повторный вход запрещён
+        from bot.storage import save_traded_today_raw
         today = date.today()
         if today != self._traded_date:
             self._traded_today.clear()
             self._traded_date = today
+            save_traded_today_raw({"date": today.isoformat(), "assets": []})
         if asset in self._traded_today:
             log.info(f"{asset}: уже торговали сегодня, повторный вход пропущен")
             return
@@ -156,6 +166,11 @@ class TradingBot:
             log_trade(pos, exit_price, reason, self.capital.capital)
             remove_position(asset)
             self._traded_today.add(asset)
+            from bot.storage import save_traded_today_raw
+            save_traded_today_raw({
+                "date": date.today().isoformat(),
+                "assets": list(self._traded_today),
+            })
 
             self.tg.position_closed(
                 asset=asset,
@@ -211,8 +226,8 @@ class TradingBot:
     async def _run_signal_check(self):
         log.info("=== Ежедневная проверка сигналов ===")
         try:
-            # 1. Обновляем on-chain данные
-            update_history(list(self.cfg.assets.keys()))
+            # 1. Обновляем on-chain данные (в отдельном потоке — не блокирует event loop)
+            await asyncio.to_thread(update_history, list(self.cfg.assets.keys()))
 
             # 2. Проверяем сигналы
             signals = check_all_signals(self.cfg.assets)

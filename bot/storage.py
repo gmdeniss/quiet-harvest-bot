@@ -82,5 +82,25 @@ def load_onchain_raw() -> dict:
 def save_onchain_raw(data: dict):
     _write(KEY_ONCHAIN, FILE_ONCHAIN, data)
 
+
+KEY_TRADELOG     = "qhb:tradelog"
+KEY_TRADED_TODAY = "qhb:traded_today"
+
+FILE_TRADELOG     = DATA_DIR / "trade_log.json"
+FILE_TRADED_TODAY = DATA_DIR / "traded_today.json"
+
+def load_tradelog_raw() -> list:
+    return _read(KEY_TRADELOG, FILE_TRADELOG) or []
+
+def save_tradelog_raw(data: list):
+    _write(KEY_TRADELOG, FILE_TRADELOG, data)
+
+def load_traded_today_raw() -> dict:
+    return _read(KEY_TRADED_TODAY, FILE_TRADED_TODAY) or {}
+
+def save_traded_today_raw(data: dict):
+    _write(KEY_TRADED_TODAY, FILE_TRADED_TODAY, data)
+
+
 def using_redis() -> bool:
     return bool(REDIS_URL and _get_redis())
