@@ -57,6 +57,8 @@ class TradingBot:
         )
         self.capital = CapitalTracker(self.cfg.initial_capital, self.cfg.target_capital)
         self._last_signal_date: date | None = None
+        self._traded_today: set[str] = set()   # активы уже торгованные сегодня
+        self._traded_date: date = date.today()
         self.cmd = CommandHandler(self)
 
     # ── Открытие позиции ──────────────────────────────────────────
@@ -71,6 +73,15 @@ class TradingBot:
             return
         if len(positions) >= self.cfg.max_simultaneous:
             log.info(f"Достигнут лимит {self.cfg.max_simultaneous} позиций, пропускаем {asset}")
+            return
+
+        # Уже торговали сегодня — повторный вход запрещён
+        today = date.today()
+        if today != self._traded_date:
+            self._traded_today.clear()
+            self._traded_date = today
+        if asset in self._traded_today:
+            log.info(f"{asset}: уже торговали сегодня, повторный вход пропущен")
             return
 
         capital_to_use = self.capital.capital * self.cfg.position_size
@@ -144,6 +155,7 @@ class TradingBot:
             # Логируем сделку
             log_trade(pos, exit_price, reason, self.capital.capital)
             remove_position(asset)
+            self._traded_today.add(asset)
 
             self.tg.position_closed(
                 asset=asset,
