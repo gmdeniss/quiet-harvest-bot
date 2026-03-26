@@ -123,6 +123,11 @@ class TradingBot:
                 order_id=order.get("order_id", ""),
             )
             add_position(pos)
+            self._traded_today.add(asset)
+            save_traded_today_raw({
+                "date": today.isoformat(),
+                "assets": list(self._traded_today),
+            })
 
             self.tg.position_opened(
                 asset=asset,
@@ -165,12 +170,6 @@ class TradingBot:
             # Логируем сделку
             log_trade(pos, exit_price, reason, self.capital.capital)
             remove_position(asset)
-            self._traded_today.add(asset)
-            from bot.storage import save_traded_today_raw
-            save_traded_today_raw({
-                "date": date.today().isoformat(),
-                "assets": list(self._traded_today),
-            })
 
             self.tg.position_closed(
                 asset=asset,
@@ -211,6 +210,14 @@ class TradingBot:
 
     async def signal_loop(self):
         log.info("Signal loop запущен")
+
+        # Catch-up: если сегодня ещё не проверяли — проверить сейчас
+        # (бот мог быть в деплое/оффлайне в момент 00:05 UTC)
+        if self._last_signal_date != datetime.now(timezone.utc).date():
+            log.info("Пропущенная проверка сигналов — запускаем сейчас")
+            await self._run_signal_check()
+            self._last_signal_date = datetime.now(timezone.utc).date()
+
         while True:
             now = datetime.now(timezone.utc)
             target_h = self.cfg.signal_check_hour
