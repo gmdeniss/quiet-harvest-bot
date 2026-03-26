@@ -59,14 +59,15 @@ class TradingBot:
         self._last_signal_date: date | None = None
         self.cmd = CommandHandler(self)
 
-        # Загружаем _traded_today из Redis (восстанавливаем после рестарта)
-        from bot.storage import load_traded_today_raw
-        _tt = load_traded_today_raw()
+        # Восстанавливаем _traded_today из фактических данных:
+        # активы ОТКРЫТЫЕ сегодня (в позициях + в логе закрытых)
+        from bot.storage import load_tradelog_raw
         today_str = date.today().isoformat()
-        if _tt.get("date") == today_str:
-            self._traded_today: set[str] = set(_tt.get("assets", []))
-        else:
-            self._traded_today: set[str] = set()
+        positions = load_positions()
+        trades = load_tradelog_raw()
+        opened_today = {a for a, p in positions.items() if p.entry_date == today_str}
+        opened_today |= {t["asset"] for t in trades if t.get("entry_date") == today_str}
+        self._traded_today: set[str] = opened_today
         self._traded_date: date = date.today()
 
     # ── Открытие позиции ──────────────────────────────────────────
