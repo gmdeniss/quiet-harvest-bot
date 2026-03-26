@@ -2,6 +2,7 @@
 Telegram уведомления.
 """
 
+import asyncio
 import logging
 import requests
 
@@ -28,10 +29,24 @@ class TelegramNotifier:
             "disable_notification": silent,
         }
         try:
-            resp = requests.post(url, json=payload, timeout=10)
-            resp.raise_for_status()
-        except Exception as e:
-            log.error(f"Telegram ошибка: {e}")
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop:
+            async def _fire(u=url, p=payload):
+                try:
+                    resp = await asyncio.to_thread(requests.post, u, json=p, timeout=10)
+                    resp.raise_for_status()
+                except Exception as e:
+                    log.error(f"Telegram ошибка: {e}")
+            loop.create_task(_fire())
+        else:
+            try:
+                resp = requests.post(url, json=payload, timeout=10)
+                resp.raise_for_status()
+            except Exception as e:
+                log.error(f"Telegram ошибка: {e}")
 
     # ── Шаблоны сообщений ─────────────────────────────────────────
 

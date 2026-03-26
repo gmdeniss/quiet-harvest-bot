@@ -56,7 +56,8 @@ class CommandHandler:
             await asyncio.sleep(2)
 
     async def _poll(self):
-        resp = requests.get(
+        resp = await asyncio.to_thread(
+            requests.get,
             f"{self._base}/getUpdates",
             params={"offset": self._offset, "timeout": 20, "limit": 10},
             timeout=25,
