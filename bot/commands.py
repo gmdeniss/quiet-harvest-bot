@@ -194,13 +194,20 @@ class CommandHandler:
             self.tg.send("📄 *[PAPER]* 📋 *История пуста* — сделок ещё не было.")
             return
 
+        reason_map = {
+            "trailing_stop": "Трейлинг стоп",
+            "max_hold":      "Время вышло",
+            "harvest":       "Снятие прибыли",
+            "manual":        "Ручное закрытие",
+        }
         last5 = trades[-5:][::-1]
         lines = []
         for t in last5:
             emoji = "✅" if t["pnl_pct"] >= 0 else "❌"
+            reason = reason_map.get(t["exit_reason"], t["exit_reason"])
             lines.append(
                 f"{emoji} *{t['asset']}* {t['exit_date']}\n"
-                f"  {t['pnl_pct']:+.2%} | `{t['pnl_usd']:+.2f}$` | {t['exit_reason']}"
+                f"  {t['pnl_pct']:+.2%} | `{t['pnl_usd']:+.2f}$` | {reason}"
             )
 
         self.tg.send(
